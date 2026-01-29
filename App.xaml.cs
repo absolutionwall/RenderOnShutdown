@@ -1,0 +1,19 @@
+using System.Windows;
+using Microsoft.Win32;
+using System.Threading.Tasks;
+
+namespace RenderOnShutdown
+{
+    public partial class App : System.Windows.Application
+    {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            base.OnExit(e);
+        }
+    }
+}
