@@ -33,7 +33,6 @@ namespace RenderOnShutdown
 
             LoadFilesAsync();
 
-            Microsoft.Win32.SystemEvents.SessionEnding += SystemEvents_SessionEnding;
             this.Closing += MainWindow_Closing;
         }
 
@@ -88,51 +87,7 @@ namespace RenderOnShutdown
             }
         }
 
-        private async void SystemEvents_SessionEnding(object? sender, SessionEndingEventArgs e)
-        {
-            AppendLog($"Session ending requested: Reason={e.Reason}");
-            var folder = _config.MonitoredFolder;
-            if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
-            {
-                AppendLog("No hay carpeta configurada o no existe. Permitido apagar.");
-                return;
-            }
-            var exts = new[] { ".mp4", ".mov", ".avi", ".mkv", ".wmv" };
-            var files = Directory.EnumerateFiles(folder).Where(f => exts.Contains(Path.GetExtension(f).ToLower())).ToList();
-            if (files.Count == 0)
-            {
-                AppendLog("No hay archivos pendientes. Permitido apagar.");
-                return;
-            }
 
-            var userChoice = System.Windows.MessageBoxResult.None;
-            await Dispatcher.InvokeAsync(() =>
-            {
-                userChoice = System.Windows.MessageBox.Show(this, $"Se encontraron {files.Count} archivos pendientes en {folder}. ¿Desea renderizarlos antes de apagar?\n(Yes = iniciar comando y posponer apagado, No = dejar apagar)", "Renderizar pendientes?", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            });
-
-            if (userChoice == MessageBoxResult.No)
-            {
-                AppendLog("Usuario permitió el apagado sin renderizar.");
-                return; // allow shutdown
-            }
-
-            // Usuario eligió Sí -> cancelar apagado y ejecutar
-            e.Cancel = true;
-            AppendLog("Usuario eligió renderizar: cancelando apagado y ejecutando comando configurado.");
-            await StartCommandAsync(files.ToList());
-            AppendLog("Comando finalizado. Esperando 3 minutos antes de proceder con el apagado.");
-            await Task.Delay(TimeSpan.FromMinutes(3));
-            AppendLog("Iniciando apagado del sistema tras espera de 3 minutos.");
-            try
-            {
-                Process.Start(new ProcessStartInfo("shutdown", "/s /t 0") { CreateNoWindow = true, UseShellExecute = false });
-            }
-            catch (Exception ex)
-            {
-                AppendLog($"Error al intentar apagar: {ex.Message}");
-            }
-        }
 
         private async void BtnRunNow_Click(object sender, RoutedEventArgs e)
         {
@@ -155,12 +110,31 @@ namespace RenderOnShutdown
                     return;
                 }
 
-                var res = System.Windows.MessageBox.Show(this, $"Se encontraron {files.Count} archivos. ¿Deseas ejecutarlos ahora?", "Ejecutar ahora", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                if (res == System.Windows.MessageBoxResult.Yes)
+                // Preguntar primero si desea apagar al finalizar
+                var shutdownChoice = System.Windows.MessageBox.Show(this, $"Se encontraron {files.Count} archivos. ¿Deseas apagar la PC al finalizar el renderizado?", "Ejecutar renderizado", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                
+                AppendLog("Usuario inició ejecución manual (Ejecutar ahora).");
+                await StartCommandAsync(files);
+                AppendLog("Ejecución manual finalizada.");
+                
+                if (shutdownChoice == System.Windows.MessageBoxResult.Yes)
                 {
-                    AppendLog("Usuario inició ejecución manual (Ejecutar ahora).");
-                    await StartCommandAsync(files);
-                    AppendLog("Ejecución manual finalizada.");
+                    AppendLog("Usuario eligió apagar PC. Esperando 200 segundos antes de proceder...");
+                    await Task.Delay(TimeSpan.FromSeconds(200));
+                    AppendLog("Apagando PC ahora.");
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo("shutdown", "/s /t 0") { CreateNoWindow = true, UseShellExecute = false });
+                    }
+                    catch (Exception ex)
+                    {
+                        AppendLog($"Error al intentar apagar: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    AppendLog("Usuario eligió no apagar. Reproduciendo sonido de aviso.");
+                    PlayNotificationSound();
                 }
             }
             catch (Exception ex)
@@ -318,6 +292,20 @@ namespace RenderOnShutdown
                     }
                 }
                 _runningProcesses.Clear();
+            }
+        }
+
+        private void PlayNotificationSound()
+        {
+            try
+            {
+                // Reproducir el sonido de notificación del sistema
+                System.Media.SystemSounds.Beep.Play();
+                AppendLog("Sonido de notificación reproducido.");
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"Error al reproducir sonido de notificación: {ex.Message}");
             }
         }
 

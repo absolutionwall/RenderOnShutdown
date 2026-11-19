@@ -16,7 +16,6 @@ namespace RenderOnShutdown
             TxtFfmpeg.Text = _config.FfmpegPath;
             TxtCommand.Text = _config.Command;
             TxtOutputFolder.Text = _config.OutputFolder;
-            ChkRunAtStartup.IsChecked = _config.RunAtStartup;
         }
 
         private void BtnBrowseMonitor_Click(object sender, RoutedEventArgs e)
@@ -53,13 +52,7 @@ namespace RenderOnShutdown
             _config.FfmpegPath = TxtFfmpeg.Text;
             _config.Command = TxtCommand.Text;
             _config.OutputFolder = TxtOutputFolder.Text;
-            _config.RunAtStartup = ChkRunAtStartup.IsChecked == true;
             _config.Save();
-            try
-            {
-                SetRunAtStartup(_config.RunAtStartup);
-            }
-            catch { }
             DialogResult = true;
             Close();
         }
@@ -70,18 +63,5 @@ namespace RenderOnShutdown
             Close();
         }
 
-        private void SetRunAtStartup(bool run)
-        {
-            var exe = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? "";
-            using var key = Registry.CurrentUser.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-            if (run)
-            {
-                key.SetValue("RenderOnShutdown", $"\"{exe}\"");
-            }
-            else
-            {
-                key.DeleteValue("RenderOnShutdown", false);
-            }
-        }
     }
 }

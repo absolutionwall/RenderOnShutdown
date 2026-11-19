@@ -1,7 +1,8 @@
 <Window x:Class="RenderOnShutdown.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Opciones" Height="320" Width="700">
+        Title="Opciones" Height="320" Width="700"
+        Icon="icon.png">
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="140" />
@@ -16,8 +17,6 @@
             <RowDefinition Height="Auto" /> <!-- Command -->
             <RowDefinition Height="6" />
             <RowDefinition Height="Auto" /> <!-- Output -->
-            <RowDefinition Height="10" />
-            <RowDefinition Height="Auto" /> <!-- RunAtStartup -->
             <RowDefinition Height="20" />
             <RowDefinition Height="Auto" /> <!-- Buttons -->
         </Grid.RowDefinitions>
@@ -37,9 +36,7 @@
         <TextBox x:Name="TxtOutputFolder" Grid.Row="6" Grid.Column="1" Margin="6,0,6,0" />
         <Button Content="Examinar" Grid.Row="6" Grid.Column="2" Click="BtnBrowseOutput_Click" />
 
-        <CheckBox x:Name="ChkRunAtStartup" Grid.Row="8" Grid.Column="1" Content="Ejecutar al iniciar sesión" />
-
-        <StackPanel Grid.Row="10" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+        <StackPanel Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
             <Button Content="Guardar" Click="BtnSave_Click" Width="100" Margin="0,0,8,0"/>
             <Button Content="Cancelar" Click="BtnCancel_Click" Width="100"/>
         </StackPanel>
