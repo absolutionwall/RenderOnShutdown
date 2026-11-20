@@ -16,6 +16,8 @@ namespace RenderOnShutdown
             TxtFfmpeg.Text = _config.FfmpegPath;
             TxtCommand.Text = _config.Command;
             TxtOutputFolder.Text = _config.OutputFolder;
+            TxtShutdownDelay.Text = _config.ShutdownDelaySeconds.ToString();
+            ChkRunAtStartup.IsChecked = _config.RunAtStartup;
         }
 
         private void BtnBrowseMonitor_Click(object sender, RoutedEventArgs e)
@@ -52,7 +54,13 @@ namespace RenderOnShutdown
             _config.FfmpegPath = TxtFfmpeg.Text;
             _config.Command = TxtCommand.Text;
             _config.OutputFolder = TxtOutputFolder.Text;
+            _config.RunAtStartup = ChkRunAtStartup.IsChecked == true;
+            if (int.TryParse(TxtShutdownDelay.Text, out var delay) && delay > 0)
+            {
+                _config.ShutdownDelaySeconds = delay;
+            }
             _config.Save();
+            _config.ApplyStartupSetting();
             DialogResult = true;
             Close();
         }

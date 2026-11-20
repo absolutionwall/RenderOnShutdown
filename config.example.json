@@ -3,10 +3,7 @@
   "FfmpegPath": "D:\\Videos\\ffmpeg\\bin\\ffmpeg.exe",
   "OutputFolder": "D:\\Videos\\Davinci",
   "Command": "{ffmpeg} -y -i \"{input}\" -c:v libx264 -preset veryfast \"{output}\"",
-  "RunAtStartup": false
-}
-{
-  "MonitoredFolder": "C:\\Users\\TU_USUARIO\\Videos\\Pendientes",
-  "Command": "C:\\ruta\\a\\tu\\render.exe \"{file}\" --out C:\\salida",
-  "RunAtStartup": false
+  "RunAtStartup": false,
+  "ShutdownDelaySeconds": 30,
+  "RenameOriginals": false
 }

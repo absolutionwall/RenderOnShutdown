@@ -1,21 +1,22 @@
 using System;
 using System.Runtime.InteropServices;
-using System.Windows.Media.Imaging;
-using System.Windows.Interop;
 using System.Windows;
-using System.IO;
+using System.Windows.Interop;
+using System.Windows.Media.Imaging;
 
 namespace RenderOnShutdown
 {
     internal static class ThumbnailHelper
     {
         [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
-        private static extern void SHCreateItemFromParsingName([MarshalAs(UnmanagedType.LPWStr)] string pszPath, IntPtr pbc, [MarshalAs(UnmanagedType.LPStruct)] Guid riid, out IShellItem ppv);
+        private static extern void SHCreateItemFromParsingName(
+            [MarshalAs(UnmanagedType.LPWStr)] string pszPath,
+            IntPtr pbc,
+            ref Guid riid,
+            [MarshalAs(UnmanagedType.Interface)] out IShellItemImageFactory ppv);
 
-        [ComImport]
-        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        [Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe")]
-        private interface IShellItem { }
+        [DllImport("gdi32.dll")]
+        private static extern bool DeleteObject(IntPtr hObject);
 
         [ComImport]
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -39,27 +40,30 @@ namespace RenderOnShutdown
             SIIGBF_INCACHEONLY = 0x10,
         }
 
-        [DllImport("gdi32.dll")]
-        private static extern bool DeleteObject(IntPtr hObject);
-
         public static BitmapSource? GetThumbnail(string path, int width = 160, int height = 90)
         {
+            var hbitmap = IntPtr.Zero;
+            IShellItemImageFactory? factory = null;
             try
             {
-                var iid = new Guid("bcc18b79-ba16-442f-80c4-8a59c30c463b");
-                SHCreateItemFromParsingName(path, IntPtr.Zero, typeof(IShellItem).GUID, out var shellItem);
-                var factory = shellItem as IShellItemImageFactory;
+                var iid = typeof(IShellItemImageFactory).GUID;
+                SHCreateItemFromParsingName(path, IntPtr.Zero, ref iid, out factory);
                 if (factory == null) return null;
-                var size = new SIZE { cx = width, cy = height };
-                factory.GetImage(size, SIIGBF.SIIGBF_RESIZETOFIT, out var hbitmap);
+                factory.GetImage(new SIZE { cx = width, cy = height }, SIIGBF.SIIGBF_RESIZETOFIT, out hbitmap);
                 if (hbitmap == IntPtr.Zero) return null;
-                var bitmap = Imaging.CreateBitmapSourceFromHBitmap(hbitmap, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-                DeleteObject(hbitmap);
+                var bitmap = Imaging.CreateBitmapSourceFromHBitmap(
+                    hbitmap, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+                bitmap.Freeze();
                 return bitmap;
             }
             catch
             {
                 return null;
+            }
+            finally
+            {
+                if (hbitmap != IntPtr.Zero) DeleteObject(hbitmap);
+                if (factory != null) Marshal.ReleaseComObject(factory);
             }
         }
     }

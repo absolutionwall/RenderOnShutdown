@@ -1,0 +1,7 @@
+C:\workspace\RenderOnShutdown\publish\RenderOnShutdown.exe
+C:\workspace\RenderOnShutdown\publish\icon.png
+C:\workspace\RenderOnShutdown\publish\icon.ico
+C:\workspace\RenderOnShutdown\publish\RenderOnShutdown.dll
+C:\workspace\RenderOnShutdown\publish\RenderOnShutdown.deps.json
+C:\workspace\RenderOnShutdown\publish\RenderOnShutdown.runtimeconfig.json
+C:\workspace\RenderOnShutdown\publish\RenderOnShutdown.pdb

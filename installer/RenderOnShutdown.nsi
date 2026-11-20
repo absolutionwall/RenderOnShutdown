@@ -1,62 +1,107 @@
 ; NSIS installer script for RenderOnShutdown
+Unicode true
+
 !include "MUI2.nsh"
+!include "nsDialogs.nsh"
+!include "LogicLib.nsh"
 
-Name "RenderOnShutdown"
+; Version can be overridden with: makensis /DPRODUCTVERSION=1.0.0 RenderOnShutdown.nsi
+!ifndef PRODUCTVERSION
+  !define PRODUCTVERSION "1.0"
+!endif
+
+!define APP_NAME "RenderOnShutdown"
+!define APP_EXE "RenderOnShutdown.exe"
+!define PUBLISH_DIR "${__FILEDIR__}\..\publish"
+!define APP_ICON "${__FILEDIR__}\..\icon.ico"
+!define RUN_KEY "Software\Microsoft\Windows\CurrentVersion\Run"
+!define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
+
+Name "${APP_NAME}"
+Icon "${APP_ICON}"
+UninstallIcon "${APP_ICON}"
 OutFile "RenderOnShutdown-Setup.exe"
-InstallDir "$PROGRAMFILES64\\RenderOnShutdown"
-InstallDirRegKey HKCU "Software\\RenderOnShutdown" "Install_Dir"
+InstallDir "$PROGRAMFILES64\${APP_NAME}"
+InstallDirRegKey HKCU "Software\${APP_NAME}" "Install_Dir"
+RequestExecutionLevel user
+Unicode true
 
-!define PRODUCT_VERSION "1.0"
+VIProductVersion "${PRODUCTVERSION}.0.0"
+VIAddVersionKey "ProductName" "${APP_NAME}"
+VIAddVersionKey "FileVersion" "${PRODUCTVERSION}"
+VIAddVersionKey "FileDescription" "${APP_NAME} Installer"
+VIAddVersionKey "LegalCopyright" ""
 
-Page components
-Page directory
-Page custom StartupPage CreateStartupPage
-Page instfiles
+!insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_DIRECTORY
+Page custom StartupPage StartupPageLeave
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_LANGUAGE "Spanish"
 
 Var START_AT_LOGIN
+Var START_CHECKBOX
+Var START_STATE
 
-Function CreateStartupPage
+Function StartupPage
   nsDialogs::Create 1018
   Pop $0
   ${If} $0 == error
     Abort
   ${EndIf}
 
-  ; Create checkbox
-  ${NSD_CreateCheckBox} 10u 10u 100% 12u "Agregar al inicio de sesión (Run at startup)"
-  Pop $1
-  ${NSD_SetState} $1 1
+  ${NSD_CreateCheckBox} 0 0 100% 12u "Agregar al inicio de sesión (Run at startup)"
+  Pop $START_CHECKBOX
+  ${If} $START_AT_LOGIN == 1
+    ${NSD_SetState} $START_CHECKBOX ${BST_CHECKED}
+  ${EndIf}
+
   nsDialogs::Show
+FunctionEnd
+
+Function StartupPageLeave
+  ${NSD_GetState} $START_CHECKBOX $START_STATE
+  ${If} $START_STATE == ${BST_CHECKED}
+    StrCpy $START_AT_LOGIN 1
+  ${Else}
+    StrCpy $START_AT_LOGIN 0
+  ${EndIf}
 FunctionEnd
 
 Section "Install"
   SetOutPath "$INSTDIR"
-  ; Copy published files
-  File /r "${EXEDIR}\\..\\publish\\*"
+  File /r "${PUBLISH_DIR}\*"
 
-  ; Create shortcuts
-  CreateDirectory "$SMPROGRAMS\\RenderOnShutdown"
-  CreateShortCut "$SMPROGRAMS\\RenderOnShutdown\\RenderOnShutdown.lnk" "$INSTDIR\\RenderOnShutdown.exe"
-  CreateShortCut "$DESKTOP\\RenderOnShutdown.lnk" "$INSTDIR\\RenderOnShutdown.exe"
+  CreateDirectory "$SMPROGRAMS\${APP_NAME}"
+  CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 0
+  CreateShortCut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 0
 
-  ; Read checkbox state - fallback: enable startup
-  ; If nsDialogs checkbox exists, read it (simple fallback: always write Run key if not available)
-  ; Try to read state into START_AT_LOGIN (0/1)
-  ${If} ${NSD_GetState} ; placeholder - cannot evaluate here; write startup by default
+  WriteRegStr HKCU "Software\${APP_NAME}" "Install_Dir" "$INSTDIR"
+
+  ${If} $START_AT_LOGIN == 1
+    WriteRegStr HKCU "${RUN_KEY}" "${APP_NAME}" '"$INSTDIR\${APP_EXE}"'
+  ${Else}
+    DeleteRegValue HKCU "${RUN_KEY}" "${APP_NAME}"
   ${EndIf}
 
-  ; By default enable startup - user can disable later in options
-  WriteRegStr HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Run" "RenderOnShutdown" '"$INSTDIR\\RenderOnShutdown.exe"'
-  WriteRegStr HKCU "Software\\RenderOnShutdown" "Install_Dir" "$INSTDIR"
+  WriteUninstaller "$INSTDIR\Uninstall.exe"
 
+  WriteRegStr HKCU "${UNINST_KEY}" "DisplayName" "${APP_NAME}"
+  WriteRegStr HKCU "${UNINST_KEY}" "DisplayVersion" "${PRODUCTVERSION}"
+  WriteRegStr HKCU "${UNINST_KEY}" "Publisher" "${APP_NAME}"
+  WriteRegStr HKCU "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKCU "${UNINST_KEY}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
+  WriteRegDWORD HKCU "${UNINST_KEY}" "NoModify" 1
+  WriteRegDWORD HKCU "${UNINST_KEY}" "NoRepair" 1
 SectionEnd
 
 Section "Uninstall"
-  ReadRegStr $0 HKCU "Software\\RenderOnShutdown" "Install_Dir"
-  IfFileExists "$0\\RenderOnShutdown.exe" 0 +2
-  Delete "$0\\RenderOnShutdown.exe"
-  Delete "$SMPROGRAMS\\RenderOnShutdown\\RenderOnShutdown.lnk"
-  Delete "$DESKTOP\\RenderOnShutdown.lnk"
-  DeleteRegKey HKCU "Software\\RenderOnShutdown"
-  DeleteRegValue HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Run" "RenderOnShutdown"
+  DeleteRegValue HKCU "${RUN_KEY}" "${APP_NAME}"
+  DeleteRegKey HKCU "Software\${APP_NAME}"
+  DeleteRegKey HKCU "${UNINST_KEY}"
+
+  Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"
+  RMDir "$SMPROGRAMS\${APP_NAME}"
+  Delete "$DESKTOP\${APP_NAME}.lnk"
+
+  RMDir /r "$INSTDIR"
 SectionEnd
