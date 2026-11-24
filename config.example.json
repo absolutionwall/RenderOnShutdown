@@ -4,6 +4,5 @@
   "OutputFolder": "D:\\Videos\\Davinci",
   "Command": "{ffmpeg} -y -i \"{input}\" -c:v libx264 -preset veryfast \"{output}\"",
   "RunAtStartup": false,
-  "ShutdownDelaySeconds": 30,
-  "RenameOriginals": false
+  "ShutdownDelaySeconds": 30
 }

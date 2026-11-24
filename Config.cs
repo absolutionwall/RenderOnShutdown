@@ -16,7 +16,6 @@ namespace RenderOnShutdown
         public string OutputFolder { get; set; } = "";
         public bool RunAtStartup { get; set; } = false;
         public int ShutdownDelaySeconds { get; set; } = 200;
-        public bool RenameOriginals { get; set; } = false;
 
         private static readonly JsonSerializerOptions SerializerOptions = new()
         {

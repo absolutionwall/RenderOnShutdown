@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -136,12 +137,24 @@ namespace RenderOnShutdown
             return result;
         }
 
+        private static bool IsAlreadyRendered(string path)
+        {
+            var nameNoExt = Path.GetFileNameWithoutExtension(path);
+            if (string.IsNullOrEmpty(nameNoExt))
+            {
+                return false;
+            }
+            return nameNoExt.EndsWith("-AR", StringComparison.OrdinalIgnoreCase)
+                || Regex.IsMatch(nameNoExt, @"-AR-\d{14}$", RegexOptions.IgnoreCase);
+        }
+
         private static List<string> DiscoverFiles(string folder)
         {
             try
             {
                 return Directory.EnumerateFiles(folder)
                     .Where(f => VideoExtensions.Contains(Path.GetExtension(f)))
+                    .Where(f => !IsAlreadyRendered(f))
                     .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
                     .ToList();
             }
@@ -267,7 +280,7 @@ namespace RenderOnShutdown
 
                 AppendLog($"Procesado {fileName} finalizado con código {p.ExitCode}. Salida en: {outPath}");
 
-                if (p.ExitCode == 0 && _config.RenameOriginals)
+                if (p.ExitCode == 0)
                 {
                     try
                     {
